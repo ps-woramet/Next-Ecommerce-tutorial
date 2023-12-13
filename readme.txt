@@ -388,3 +388,142 @@ trick:
         import { toast } from 'react-hot-toast';
 
         toast.success('Product added to cart');
+
+12. react hook form
+
+    npm install react-hook-form
+
+    -src > components > inputs > input.tsx
+
+        'use client'
+
+        import { UseFormRegister, FieldErrors, FieldValues } from "react-hook-form";
+
+        interface InputProps{
+            id: string;
+            label: string;
+            type?: string;
+            disabled?: boolean;
+            required?: boolean;
+            register: UseFormRegister<FieldValues>;
+            errors: FieldErrors
+        }
+
+        const Input:React.FC<InputProps> = ({
+            id, label, type, disabled, required, register, errors
+        }) => {
+            return (<div className="w-full relative">
+                <input
+                    autoComplete="off"
+                    id={id}
+                    disabled={disabled}
+                    {...register(id, {required})}
+                    placeholder=""
+                    type={type}
+                    className={`peer w-full p-4 pt-6 outline-none bg-white font-light border-2 rounded-md transition disabled:opacity-70 disabled:cursor-not-allowed 
+                    ${errors[id]?'border-rose-400' : 'border-slate-300'}
+                    ${errors[id]?'focus:border-rose-400' : 'focus:border-slate-300'}
+                `}/>
+                <label htmlFor={id} 
+                    className={`absolute
+                    cursor-text
+                    text-md
+                    duration-150
+                    tranform
+                    -translate-y-3
+                    top-5
+                    z-10
+                    origin-[0]
+                    left-4
+                    peer-placeholder-shown:scale-100
+                    peer-placeholder-shown:translate-y-0
+                    peer-focus:scale-75
+                    peer-focus:-translate-y-4
+                    ${errors[id]?'text-rose-500' : 'text-slate-400'}
+                `}>{label}</label>
+            </div>);
+        }
+
+        export default Input;
+
+    -src > app > register > page.tsx
+
+        import Container from "@/components/Container";
+        import FormWrap from "@/components/FormWrap";
+        import RegisterForm from "./RegisterForm";
+
+        const Register = () => {
+            return (
+                <Container>
+                    <FormWrap>
+                        <RegisterForm/>
+                    </FormWrap>
+                </Container>
+            );
+        }
+        
+        export default Register;
+
+    -src > app > register > RegisterForm.tsx
+
+        'use client'
+
+        import Button from "@/components/Button";
+        import Input from "@/components/inputs/Input";
+        import Heading from "@/components/products/Heading"
+        import { useState } from "react";
+        import { FieldValues, SubmitHandler ,useForm } from "react-hook-form";
+        import Link from "next/link";
+        import { AiOutlineGoogle } from "react-icons/ai";
+
+        const RegisterForm = () => {
+
+            const [isLoading, setIsLoading] = useState(false)
+            const {register, handleSubmit, formState:{errors}} = useForm<FieldValues>({defaultValues:{name: "",email: "", password: "",}})
+            
+            const onSubmit: SubmitHandler<FieldValues> = (data) => {
+                setIsLoading(true)
+                console.log(data);
+                
+            }
+
+            return (<>
+                <Heading title="Sign up for E-shop"/>
+                <Button outline label="Sign up with Google" icon={AiOutlineGoogle} onClick={() => {}}/>
+                <hr className="bg-slate-300 w-full h-px"/>
+                <Input 
+                    id="name"
+                    label="Name"
+                    disabled={isLoading}
+                    register={register}
+                    errors={errors}
+                    required
+                />
+                <Input 
+                    id="email"
+                    label="Email"
+                    disabled={isLoading}
+                    register={register}
+                    errors={errors}
+                    required
+                />
+                <Input 
+                    id="password"
+                    label="Password"
+                    disabled={isLoading}
+                    register={register}
+                    errors={errors}
+                    required
+                    type="password"
+                />
+                <Button label={isLoading ? "Loading" : "Sign Up"} onClick={handleSubmit(onSubmit)} />
+                <p className="text-sm">
+                    Already have an account?{" "}
+                    <Link className="underline" href="/login">
+                        Login
+                    </Link>
+                </p>
+                </>);
+        }
+        
+        export default RegisterForm;
