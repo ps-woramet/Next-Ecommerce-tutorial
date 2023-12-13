@@ -6,7 +6,7 @@ import { Rating } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
 import Button from "@/components/Button";
 import ProductImage from "@/components/products/ProductImage";
-import { CartContext, useCart } from "../../../../hooks/useCart";
+import { CartContext, useCart } from "../../../hooks/useCart";
 import { MdCheckCircle } from "react-icons/md";
 import { useRouter } from "next/navigation";
 

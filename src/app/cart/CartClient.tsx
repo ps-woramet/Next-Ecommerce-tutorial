@@ -1,7 +1,7 @@
 'use client'
 
 import { MdArrowBack } from "react-icons/md";
-import { useCart } from "../../../hooks/useCart";
+import { useCart } from "../../hooks/useCart";
 import Link from "next/link";
 import Heading from "@/components/products/Heading";
 import Button from "@/components/Button";

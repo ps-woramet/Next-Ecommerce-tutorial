@@ -527,3 +527,184 @@ trick:
         }
         
         export default RegisterForm;
+
+13. auth (@auth/prisma-adapter)
+
+    npm install next-auth
+    npm install @prisma/client @auth/prisma-adapter
+    npm install prisma --save-dev
+    npm i @next-auth/prisma-adapter
+    npm i bcrypt @types/bcrypt
+
+    -prisma > schema.prisma
+
+        datasource db {
+            provider = "mongodb"
+            url      = env("DATABASE_URL")
+        }
+
+        generator client {
+            provider        = "prisma-client-js"
+        }
+
+        model Account {
+            id                 String  @id @default(auto()) @map("_id") @db.ObjectId
+            userId             String  @db.ObjectId
+            type               String
+            provider           String
+            providerAccountId  String
+            refresh_token      String?  @db.String
+            access_token       String?  @db.String
+            expires_at         Int?
+            token_type         String?
+            scope              String?
+            id_token           String?  @db.String
+            session_state      String?
+
+            user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+            @@unique([provider, providerAccountId])
+        }
+
+        model User {
+            id            String    @id @default(auto()) @map("_id") @db.ObjectId
+            name          String?
+            email         String?   @unique
+            emailVerified DateTime?
+            image         String?
+            hashedPassword String?
+            createdAt DateTime @default(now())
+            updateAT DateTime @updatedAt
+            role Role @default(USER)
+
+            accounts      Account[]
+        }
+
+        enum Role{
+            USER
+            ADMIN
+        }
+
+    -src > app > libs
+
+        import { PrismaClient } from "@prisma/client";
+
+        declare global{
+            var prisma: PrismaClient | undefined
+        }
+
+        const client = globalThis.prisma || new PrismaClient()
+
+        if(process.env.NODE_ENV !== 'production') globalThis.prisma = client
+
+        export default client;
+
+    -src > pages > api > auth > [...nextauth].tsx
+
+        import NextAuth from "next-auth"
+        import GoogleProvider from "next-auth/providers/google"
+        import CredentialsProvider from "next-auth/providers/credentials"
+        import { PrismaAdapter } from "@next-auth/prisma-adapter"
+        import prisma from '@/libs/prismadb'
+        import bcrypt from 'bcrypt'
+
+        export default NextAuth({
+        adapter: PrismaAdapter(prisma),
+        providers: [
+            GoogleProvider({
+            clientId: process.env.GOOGLE_CLIENT_ID as string,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+            }),
+            CredentialsProvider({
+            name: "credentials",
+            credentials: {
+                email: {
+                label: "email",
+                type: "text",
+                },
+                password: {
+                label : "password",
+                type: "password",
+                },
+            },
+            async authorize(credentials){
+                if(!credentials?.email || !credentials.password){
+                throw new Error('Invalid email or password')
+                }
+
+                const user = await prisma.user.findUnique({
+                where: {
+                    email: credentials.email
+                }
+                })
+
+                if(!user || !user?.hashedPassword){
+                throw new Error('Invalid email or password')
+                }
+
+                const isCorrectPassword = await bcrypt.compare(
+                credentials.password,
+                user.hashedPassword
+                )
+
+                if(!isCorrectPassword){
+                throw new Error("Invalid email or password")
+                }
+
+                return user;
+            }
+            })
+        ],
+        pages: {
+            signIn: "/login",
+        },
+        debug: process.env.NODE_ENV === "development",
+        session: {
+            strategy: "jwt",
+        },
+            secret: process.env.NEXTAUTH_SECRET,
+        })
+
+14. mongodb
+
+    new project > nextjs-e-shop-tutorial > create project
+    
+    Database > Build a database > free > aws > singapore > create
+
+        username: psworamet
+
+        password: psworamet123456
+
+    Network Access > Add IP Address > Access List Entry: 0.0.0.0/0
+
+    Database > connect > mongodb+srv://psworamet:<password>@cluster0.ok0sfhz.mongodb.net/
+
+    -.env
+
+        DATABASE_URL = "mongodb+srv://psworamet:psworamet123456@cluster0.ok0sfhz.mongodb.net/next-e-commerce"
+
+    -root cmd > npx prisma db push
+
+15. สร้าง api > register > route
+
+    -src > app > api > register > route.tsx
+
+        import bcrypt from 'bcrypt'
+        import prisma from '@/libs/prismadb'
+        import { NextResponse } from 'next/server'
+
+        export async function POST(request: Request){
+            const body = await request.json()
+            const {name, email, password} = body
+
+            const hashedPassword = await bcrypt.hash(password, 10)
+
+            const user = await prisma.user.create({
+                data:{
+                    name, email, hashedPassword
+                }
+            })
+
+            return NextResponse.json(user)
+        }
+
